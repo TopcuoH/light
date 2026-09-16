@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#ffd98a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Книжный свет">
+  <meta name="description" content="Мягкая экранная лампа для чтения бумажных книг.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>Книжный свет</title>
+  <style>
+    :root{--lamp:#ffd98a;--panel:rgba(12,14,18,.82);--border:rgba(255,255,255,.16);--text:#fff;--muted:rgba(255,255,255,.7)}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,input{font:inherit}
+    #lamp{position:fixed;inset:0;background:var(--lamp);touch-action:manipulation;transition:background-color .08s linear}
+    .top{position:fixed;z-index:5;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:.2s ease}
+    .badge,.circle,.panel{background:var(--panel);color:var(--text);border:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 12px 40px rgba(0,0,0,.22)}
+    .badge{padding:10px 14px;border-radius:999px;font-weight:750}.badge small{font-weight:500;opacity:.68;margin-left:8px}
+    .circle{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;cursor:pointer}
+    .panel{position:fixed;z-index:6;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));max-width:720px;margin:auto;padding:16px;border-radius:24px;transition:.2s ease}
+    .hidden .panel{opacity:0;transform:translateY(30px);pointer-events:none}.hidden .top{opacity:0;transform:translateY(-20px);pointer-events:none}
+    .label{display:flex;justify-content:space-between;gap:12px;font-size:14px;font-weight:650}.value{font-weight:500;color:var(--muted)}
+    input[type=range]{width:100%;height:36px;margin:2px 0 8px;accent-color:#fff}
+    .temp-row{display:grid;grid-template-columns:1fr 52px;gap:10px;align-items:end}
+    input[type=color]{width:52px;height:44px;border:0;padding:0;background:transparent;border-radius:13px;overflow:hidden}
+    input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-webkit-color-swatch{border:2px solid rgba(255,255,255,.4);border-radius:13px}
+    .presets{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 14px}.swatch{height:42px;border-radius:13px;border:2px solid rgba(255,255,255,.18);cursor:pointer}.swatch.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.2)}
+    .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.action{min-height:46px;padding:9px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.1);color:#fff;font-weight:650;cursor:pointer}.action.on{background:rgba(255,255,255,.23)}
+    .hint{text-align:center;color:var(--muted);font-size:12px;margin-top:11px}
+    @media(max-width:420px){.actions{grid-template-columns:1fr 1fr}.actions .action:last-child{grid-column:1/-1}.badge small{display:none}}
+  </style>
+</head>
+<body>
+  <main id="lamp" aria-label="Экранная лампа"></main>
+  <div class="top">
+    <div class="badge">Книжный свет <small id="status">экран активен</small></div>
+    <button class="circle" id="hide" aria-label="Скрыть управление">✕</button>
+  </div>
+  <section class="panel">
+    <div class="label"><span>Яркость света</span><span class="value" id="brightnessValue">85%</span></div>
+    <input id="brightness" type="range" min="1" max="100" value="85">
+    <div class="temp-row">
+      <div>
+        <div class="label"><span>Температура</span><span class="value" id="tempValue">тёплый</span></div>
+        <input id="temperature" type="range" min="0" max="100" value="28">
+      </div>
+      <input id="color" type="color" value="#ffd98a" aria-label="Свой цвет">
+    </div>
+    <div class="presets">
+      <button class="swatch" data-color="#ffad45" data-temp="8" style="background:#ffad45" aria-label="Янтарный"></button>
+      <button class="swatch active" data-color="#ffd98a" data-temp="28" style="background:#ffd98a" aria-label="Тёплый"></button>
+      <button class="swatch" data-color="#fff0cc" data-temp="45" style="background:#fff0cc" aria-label="Кремовый"></button>
+      <button class="swatch" data-color="#fffaf0" data-temp="60" style="background:#fffaf0" aria-label="Белый"></button>
+      <button class="swatch" data-color="#e8f3ff" data-temp="84" style="background:#e8f3ff" aria-label="Холодный"></button>
+    </div>
+    <div class="actions">
+      <button class="action" id="fullscreen">⛶ На весь экран</button>
+      <button class="action" id="wake">☀ Не гасить</button>
+      <button class="action" id="install">＋ Установить</button>
+    </div>
+    <div class="hint">Коснись свободной области, чтобы скрыть или вернуть управление.</div>
+  </section>
+<script>
+(()=>{
+ const $=s=>document.querySelector(s), body=document.body, lamp=$('#lamp'), b=$('#brightness'), t=$('#temperature'), c=$('#color'), bv=$('#brightnessValue'), tv=$('#tempValue'), status=$('#status'), wakeBtn=$('#wake'), fullBtn=$('#fullscreen'), installBtn=$('#install'), sw=[...document.querySelectorAll('.swatch')];
+ let custom=localStorage.blCustom==='1', base=localStorage.blColor||'#ffd98a', wakeLock=null, wakeWanted=localStorage.blWake!=='0', deferredPrompt=null;
+ if(localStorage.blBrightness)b.value=localStorage.blBrightness;if(localStorage.blTemp)t.value=localStorage.blTemp;c.value=base;
+ const rgb=h=>{h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]};
+ const hex=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+ function tempColor(x){const s=[[0,[255,166,65]],[30,[255,218,145]],[55,[255,248,232]],[72,[245,249,255]],[100,[210,232,255]]];for(let i=0;i<s.length-1;i++){if(x>=s[i][0]&&x<=s[i+1][0]){const f=(x-s[i][0])/(s[i+1][0]-s[i][0]);return hex(s[i][1].map((v,j)=>v+(s[i+1][1][j]-v)*f))}}return '#fff'}
+ function name(x){return x<18?'янтарный':x<42?'тёплый':x<65?'нейтральный':x<85?'холодный':'дневной'}
+ function apply(){if(!custom)base=tempColor(+t.value);const k=+b.value/100,r=rgb(base).map(v=>v*k),out=hex(r);document.documentElement.style.setProperty('--lamp',out);document.querySelector('meta[name=theme-color]').content=out;bv.textContent=b.value+'%';tv.textContent=custom?'свой цвет':name(+t.value);c.value=base;localStorage.blBrightness=b.value;localStorage.blTemp=t.value;localStorage.blColor=base;localStorage.blCustom=custom?'1':'0'}
+ b.oninput=apply;t.oninput=()=>{custom=false;sw.forEach(x=>x.classList.remove('active'));apply()};c.oninput=()=>{base=c.value;custom=true;sw.forEach(x=>x.classList.remove('active'));apply()};
+ sw.forEach(x=>x.onclick=()=>{sw.forEach(y=>y.classList.toggle('active',x===y));base=x.dataset.color;t.value=x.dataset.temp;custom=false;apply()});
+ lamp.onclick=()=>body.classList.toggle('hidden');$('#hide').onclick=()=>body.classList.add('hidden');
+ fullBtn.onclick=async()=>{try{document.fullscreenElement?await document.exitFullscreen():await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch{}};document.addEventListener('fullscreenchange',()=>fullBtn.textContent=document.fullscreenElement?'↙ Выйти':'⛶ На весь экран');
+ async function lock(){if(!('wakeLock'in navigator)){status.textContent='режим недоступен';return}try{wakeLock=await navigator.wakeLock.request('screen');wakeBtn.classList.add('on');wakeBtn.textContent='☀ Не гасить: вкл';status.textContent='не гаснет';wakeLock.addEventListener('release',()=>{wakeLock=null;wakeBtn.classList.remove('on');status.textContent='экран активен'})}catch{status.textContent='разрешение не дано'}}
+ async function unlock(){try{await wakeLock?.release()}catch{}wakeLock=null;wakeBtn.classList.remove('on');wakeBtn.textContent='☀ Не гасить';status.textContent='экран активен'}
+ wakeBtn.onclick=async()=>{wakeWanted=!wakeWanted;localStorage.blWake=wakeWanted?'1':'0';wakeWanted?await lock():await unlock()};document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&wakeWanted&&!wakeLock)lock()});
+ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});installBtn.onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null}else alert('Открой меню браузера и выбери «Установить приложение» или «Добавить на главный экран».')};
+ if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');apply();if(wakeWanted)lock();
+})();
+</script>
+</body>
+</html>
