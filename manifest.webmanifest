@@ -1,0 +1,21 @@
+{
+  "id": "/light/",
+  "name": "Книжный свет",
+  "short_name": "Книжный свет",
+  "description": "Мягкая экранная лампа для чтения бумажных книг с регулировкой цвета и яркости.",
+  "lang": "ru",
+  "start_url": "/light/",
+  "scope": "/light/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffd98a",
+  "theme_color": "#ffd98a",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
